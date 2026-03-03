@@ -120,14 +120,14 @@ declare function verifyV2RecordSignature(record: OpenLogsV2Record): Promise<bool
  */
 declare function verifyV2Chain(records: OpenLogsV2Record[]): Promise<VerifyResult>;
 /** @deprecated Use createEntry instead */
-declare function createPayload(input: Omit<OpenLogsPayload, 'ts' | 'nonce'> & {
+declare function createPayload(input: Omit<OpenLogsPayload, "ts" | "nonce"> & {
     ts?: string;
     nonce?: string;
 }): OpenLogsPayload;
 /** @deprecated Use computeV2RecordHash instead */
 declare function computeRecordHash(payload: OpenLogsPayload, prevHash: string | null): string;
 /** @deprecated Use createV2Record instead */
-declare function createRecord(payloadInput: Omit<OpenLogsPayload, 'ts' | 'nonce'> & {
+declare function createRecord(payloadInput: Omit<OpenLogsPayload, "ts" | "nonce"> & {
     ts?: string;
     nonce?: string;
 }, prevHash: string | null): OpenLogsRecord;
@@ -142,4 +142,6 @@ declare function verifyRecordSignature(record: OpenLogsRecord): Promise<boolean>
 /** @deprecated Use verifyV2Chain instead */
 declare function verifyChain(records: OpenLogsRecord[]): Promise<VerifyResult>;
 
-export { type OpenLogsAlg, type OpenLogsPayload, type OpenLogsRecord, type OpenLogsSignature, type OpenLogsV2Entry, type OpenLogsV2Record, type VerifyResult, canonicalize, computeRecordHash, computeV2RecordHash, createEntry, createPayload, createRecord, createV2Record, ed25519Sign, ed25519Verify, generateEd25519Keypair, hexToBytes, randomBytes, sha256Hex, signRecord, signV2Record, utf8ToBytes, verifyChain, verifyRecordSignature, verifyV2Chain, verifyV2RecordSignature };
+declare function normalizeTpsUri(input: string): string;
+
+export { type OpenLogsAlg, type OpenLogsPayload, type OpenLogsRecord, type OpenLogsSignature, type OpenLogsV2Entry, type OpenLogsV2Record, type VerifyResult, canonicalize, computeRecordHash, computeV2RecordHash, createEntry, createPayload, createRecord, createV2Record, ed25519Sign, ed25519Verify, generateEd25519Keypair, hexToBytes, normalizeTpsUri, randomBytes, sha256Hex, signRecord, signV2Record, utf8ToBytes, verifyChain, verifyRecordSignature, verifyV2Chain, verifyV2RecordSignature };

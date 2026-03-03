@@ -6,9 +6,10 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 function runOpenLogs(args, cwd) {
+  const cliEntry = path.resolve(__dirname, '..', 'dist', 'index.js');
   const res = spawnSync(
     process.execPath,
-    [path.join('dist', 'index.js'), ...args],
+    [cliEntry, ...args],
     {
       cwd,
       encoding: 'utf8',
@@ -44,12 +45,10 @@ test('init + log + verify roundtrip', () => {
   const log1 = runOpenLogs(
     [
       'log',
-      '--actor',
-      'actor:test',
-      '--intent',
+      '--event',
       'test.one',
       '--tps',
-      'tps:test:1',
+      'tps://node:test@T:greg.m3.c1.y26.m01.d09.h14.m30.s25.m0',
       '--data',
       '{"n":1}',
     ],
@@ -60,12 +59,10 @@ test('init + log + verify roundtrip', () => {
   const log2 = runOpenLogs(
     [
       'log',
-      '--actor',
-      'actor:test',
-      '--intent',
+      '--event',
       'test.two',
       '--tps',
-      'tps:test:2',
+      'tps://node:test@T:greg.m3.c1.y26.m01.d09.h14.m30.s26.m0',
       '--data',
       '{"n":2}',
     ],

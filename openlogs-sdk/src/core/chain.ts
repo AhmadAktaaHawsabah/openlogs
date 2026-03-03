@@ -1,6 +1,6 @@
-import { ulid } from 'ulid';
-import { canonicalize } from './canonical';
-import { bytesToHex } from '@noble/hashes/utils.js';
+import { ulid } from "ulid";
+import { canonicalize } from "./canonical";
+import { bytesToHex } from "@noble/hashes/utils.js";
 
 import {
   OpenLogsV2Entry,
@@ -10,8 +10,9 @@ import {
   // Legacy v1 types (deprecated)
   OpenLogsPayload,
   OpenLogsRecord,
-} from './types';
-import { ed25519Sign, ed25519Verify, sha256Hex, utf8ToBytes } from './crypto';
+} from "./types";
+import { ed25519Sign, ed25519Verify, sha256Hex, utf8ToBytes } from "./crypto";
+import { normalizeTpsUri } from "./tps";
 
 // =============================================================================
 // OpenLogs v2.0 Functions
@@ -29,9 +30,9 @@ export function createEntry(input: {
   id?: string;
 }): OpenLogsV2Entry {
   return {
-    spec: 'openlogs.v2',
+    spec: "openlogs.v2",
     id: input.id ?? ulid(),
-    tps: input.tps,
+    tps: normalizeTpsUri(input.tps),
     event: input.event,
     ...(input.data && { data: input.data }),
     ...(input.indexes && { indexes: input.indexes }),
@@ -76,7 +77,7 @@ export async function signV2Record(
 ): Promise<OpenLogsV2Record> {
   const sigBytes = await ed25519Sign(utf8ToBytes(record.hash), keys.privateKey);
   const sig: OpenLogsSignature = {
-    alg: 'ed25519',
+    alg: "ed25519",
     publicKeyHex: bytesToHex(keys.publicKey),
     sigHex: bytesToHex(sigBytes),
     kid: keys.kid,
@@ -91,8 +92,8 @@ export async function verifyV2RecordSignature(
   record: OpenLogsV2Record,
 ): Promise<boolean> {
   if (!record.sig) return false;
-  if (record.sig.alg !== 'ed25519') return false;
-  const { hexToBytes } = await import('./crypto');
+  if (record.sig.alg !== "ed25519") return false;
+  const { hexToBytes } = await import("./crypto");
   const pub = hexToBytes(record.sig.publicKeyHex);
   const sig = hexToBytes(record.sig.sigHex);
   return ed25519Verify(sig, utf8ToBytes(record.hash), pub);
@@ -108,17 +109,17 @@ export async function verifyV2Chain(
     const r = records[i];
     const expectedHash = computeV2RecordHash(r.entry, r.prev_hash);
     if (r.hash !== expectedHash) {
-      return { ok: false, error: 'hash-mismatch', index: i };
+      return { ok: false, error: "hash-mismatch", index: i };
     }
 
     const expectedPrev = i === 0 ? null : records[i - 1].hash;
     if (r.prev_hash !== expectedPrev) {
-      return { ok: false, error: 'prev-hash-mismatch', index: i };
+      return { ok: false, error: "prev-hash-mismatch", index: i };
     }
 
     if (r.sig) {
       const ok = await verifyV2RecordSignature(r);
-      if (!ok) return { ok: false, error: 'bad-signature', index: i };
+      if (!ok) return { ok: false, error: "bad-signature", index: i };
     }
   }
   return { ok: true };
@@ -130,7 +131,7 @@ export async function verifyV2Chain(
 
 /** @deprecated Use createEntry instead */
 export function createPayload(
-  input: Omit<OpenLogsPayload, 'ts' | 'nonce'> & {
+  input: Omit<OpenLogsPayload, "ts" | "nonce"> & {
     ts?: string;
     nonce?: string;
   },
@@ -157,7 +158,7 @@ export function computeRecordHash(
 
 /** @deprecated Use createV2Record instead */
 export function createRecord(
-  payloadInput: Omit<OpenLogsPayload, 'ts' | 'nonce'> & {
+  payloadInput: Omit<OpenLogsPayload, "ts" | "nonce"> & {
     ts?: string;
     nonce?: string;
   },
@@ -175,7 +176,7 @@ export async function signRecord(
 ): Promise<OpenLogsRecord> {
   const sigBytes = await ed25519Sign(utf8ToBytes(record.hash), keys.privateKey);
   const sig: OpenLogsSignature = {
-    alg: 'ed25519',
+    alg: "ed25519",
     publicKeyHex: bytesToHex(keys.publicKey),
     sigHex: bytesToHex(sigBytes),
     kid: keys.kid,
@@ -188,8 +189,8 @@ export async function verifyRecordSignature(
   record: OpenLogsRecord,
 ): Promise<boolean> {
   if (!record.sig) return false;
-  if (record.sig.alg !== 'ed25519') return false;
-  const { hexToBytes } = await import('./crypto');
+  if (record.sig.alg !== "ed25519") return false;
+  const { hexToBytes } = await import("./crypto");
   const pub = hexToBytes(record.sig.publicKeyHex);
   const sig = hexToBytes(record.sig.sigHex);
   return ed25519Verify(sig, utf8ToBytes(record.hash), pub);
@@ -203,17 +204,17 @@ export async function verifyChain(
     const r = records[i];
     const expectedHash = computeRecordHash(r.payload, r.prevHash);
     if (r.hash !== expectedHash) {
-      return { ok: false, error: 'hash-mismatch', index: i };
+      return { ok: false, error: "hash-mismatch", index: i };
     }
 
     const expectedPrev = i === 0 ? null : records[i - 1].hash;
     if (r.prevHash !== expectedPrev) {
-      return { ok: false, error: 'prev-hash-mismatch', index: i };
+      return { ok: false, error: "prev-hash-mismatch", index: i };
     }
 
     if (r.sig) {
       const ok = await verifyRecordSignature(r);
-      if (!ok) return { ok: false, error: 'bad-signature', index: i };
+      if (!ok) return { ok: false, error: "bad-signature", index: i };
     }
   }
   return { ok: true };
