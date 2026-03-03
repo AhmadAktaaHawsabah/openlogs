@@ -62,6 +62,9 @@ async function run() {
     assert.ok(entry.id, "id should be set");
     assert.ok(entry.tps, "tps should be set");
     assert.deepEqual(entry.data, { method: "oauth2", provider: "google" });
+
+    console.log("\n  📄 Entry JSON:");
+    console.log(JSON.stringify(entry, null, 2));
   });
 
   await test("rejects empty actor", () => {
@@ -120,6 +123,9 @@ async function run() {
     },
     r2.hash,
   );
+
+  console.log("\n  📄 Record 1 (unsigned) JSON:");
+  console.log(JSON.stringify(r1, null, 2));
 
   await test("builds a 3-record chain with correct linking", () => {
     assert.equal(r1.prev_hash, null);
@@ -195,6 +201,9 @@ async function run() {
     assert.equal(signed1.sig!.kid, "key:test-2026");
     assert.ok(signed1.sig!.sigHex.length > 0);
     assert.ok(signed1.sig!.publicKeyHex.length > 0);
+
+    console.log("\n  📄 Signed Record JSON:");
+    console.log(JSON.stringify(signed1, null, 2));
   });
 
   await test("verifies signed chain", async () => {
@@ -213,6 +222,9 @@ async function run() {
     const decoded = decodeTpsUid(uid);
     assert.equal(decoded.tps, tps, "decoded TPS should match original");
     assert.ok(decoded.context, "should have random context");
+
+    console.log("\n  📄 TPS-UID:", uid);
+    console.log("  📄 Decoded:", JSON.stringify(decoded, null, 2));
   });
 
   await test("generates unique UIDs", () => {
