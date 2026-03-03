@@ -1,0 +1,79 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+
+function runOpenLogs(args, cwd) {
+  const res = spawnSync(
+    process.execPath,
+    [path.join('dist', 'index.js'), ...args],
+    {
+      cwd,
+      encoding: 'utf8',
+    },
+  );
+  return {
+    code: res.status ?? 0,
+    stdout: res.stdout ?? '',
+    stderr: res.stderr ?? '',
+  };
+}
+
+test('openlogs --help shows commands', () => {
+  const cwd = process.cwd();
+  const res = runOpenLogs(['--help'], cwd);
+  assert.equal(res.code, 0);
+  assert.match(res.stdout, /Commands:/);
+  assert.match(res.stdout, /init/);
+  assert.match(res.stdout, /log/);
+  assert.match(res.stdout, /verify/);
+  assert.match(res.stdout, /inspect/);
+});
+
+test('init + log + verify roundtrip', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'openlogs-cli-'));
+
+  const init = runOpenLogs(
+    ['init', '--out', '.openlogs/identity.json', '--kid', 'kid:test'],
+    tmp,
+  );
+  assert.equal(init.code, 0, init.stderr || init.stdout);
+
+  const log1 = runOpenLogs(
+    [
+      'log',
+      '--actor',
+      'actor:test',
+      '--intent',
+      'test.one',
+      '--tps',
+      'tps:test:1',
+      '--data',
+      '{"n":1}',
+    ],
+    tmp,
+  );
+  assert.equal(log1.code, 0, log1.stderr || log1.stdout);
+
+  const log2 = runOpenLogs(
+    [
+      'log',
+      '--actor',
+      'actor:test',
+      '--intent',
+      'test.two',
+      '--tps',
+      'tps:test:2',
+      '--data',
+      '{"n":2}',
+    ],
+    tmp,
+  );
+  assert.equal(log2.code, 0, log2.stderr || log2.stdout);
+
+  const verify = runOpenLogs(['verify', '--file', 'openlogs.jsonl'], tmp);
+  assert.equal(verify.code, 0, verify.stderr || verify.stdout);
+  assert.match(verify.stdout, /OK/);
+});
