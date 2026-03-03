@@ -1,12 +1,12 @@
 import { Command } from "commander";
 import chalk from "chalk";
 
-import { createV2Record, signV2Record } from "@nextera.one/openlogs-sdk";
+import {
+  createV2Record,
+  signV2Record,
+  hexToBytes,
+} from "@nextera.one/openlogs-sdk";
 import { appendJsonLine, readJsonFile, readJsonLines } from "./fsutil";
-
-function hexToBytes(hex: string): Uint8Array {
-  return Uint8Array.from(Buffer.from(hex, "hex"));
-}
 
 type IdentityFile = {
   alg: "ed25519";

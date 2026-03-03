@@ -8,9 +8,6 @@ const commander_1 = require("commander");
 const chalk_1 = __importDefault(require("chalk"));
 const openlogs_sdk_1 = require("@nextera.one/openlogs-sdk");
 const fsutil_1 = require("./fsutil");
-function hexToBytes(hex) {
-    return Uint8Array.from(Buffer.from(hex, "hex"));
-}
 exports.logCommand = new commander_1.Command("log")
     .description("Append a new OpenLogs v2 record to a JSONL file")
     .requiredOption("-a, --actor <actor>", "Actor identifier (e.g., user:alice, system:cron, device:sensor-1)")
@@ -73,8 +70,8 @@ exports.logCommand = new commander_1.Command("log")
         try {
             const id = (0, fsutil_1.readJsonFile)(String(options.key));
             out = await (0, openlogs_sdk_1.signV2Record)(record, {
-                privateKey: hexToBytes(id.privateKeyHex),
-                publicKey: hexToBytes(id.publicKeyHex),
+                privateKey: (0, openlogs_sdk_1.hexToBytes)(id.privateKeyHex),
+                publicKey: (0, openlogs_sdk_1.hexToBytes)(id.publicKeyHex),
                 kid: id.kid,
             });
         }

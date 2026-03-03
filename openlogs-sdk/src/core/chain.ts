@@ -11,7 +11,13 @@ import {
   OpenLogsPayload,
   OpenLogsRecord,
 } from "./types";
-import { ed25519Sign, ed25519Verify, sha256Hex, utf8ToBytes } from "./crypto";
+import {
+  ed25519Sign,
+  ed25519Verify,
+  sha256Hex,
+  utf8ToBytes,
+  hexToBytes,
+} from "./crypto";
 import { normalizeTpsUri } from "./tps";
 import { generateTpsUid } from "./tpsuid";
 
@@ -59,6 +65,14 @@ export function computeV2RecordHash(
   entry: OpenLogsV2Entry,
   prev_hash: string | null,
 ): string {
+  if (!entry || typeof entry !== "object" || entry.spec !== "openlogs.v2") {
+    throw new Error(
+      "computeV2RecordHash requires a valid OpenLogsV2Entry with spec 'openlogs.v2'",
+    );
+  }
+  if (prev_hash !== null && typeof prev_hash !== "string") {
+    throw new Error("prev_hash must be a string or null");
+  }
   const body = canonicalize({ entry, prev_hash });
   return sha256Hex(body);
 }
@@ -90,6 +104,18 @@ export async function signV2Record(
   record: OpenLogsV2Record,
   keys: { privateKey: Uint8Array; publicKey: Uint8Array; kid?: string },
 ): Promise<OpenLogsV2Record> {
+  if (!record || !record.hash) {
+    throw new Error("signV2Record requires a record with a valid hash");
+  }
+  if (
+    !(keys.privateKey instanceof Uint8Array) ||
+    keys.privateKey.length !== 32
+  ) {
+    throw new Error("privateKey must be a 32-byte Uint8Array");
+  }
+  if (!(keys.publicKey instanceof Uint8Array) || keys.publicKey.length !== 32) {
+    throw new Error("publicKey must be a 32-byte Uint8Array");
+  }
   const sigBytes = await ed25519Sign(utf8ToBytes(record.hash), keys.privateKey);
   const sig: OpenLogsSignature = {
     alg: "ed25519",
@@ -108,7 +134,6 @@ export async function verifyV2RecordSignature(
 ): Promise<boolean> {
   if (!record.sig) return false;
   if (record.sig.alg !== "ed25519") return false;
-  const { hexToBytes } = await import("./crypto");
   const pub = hexToBytes(record.sig.publicKeyHex);
   const sig = hexToBytes(record.sig.sigHex);
   return ed25519Verify(sig, utf8ToBytes(record.hash), pub);
@@ -138,6 +163,33 @@ export async function verifyV2Chain(
     }
   }
   return { ok: true };
+}
+
+/**
+ * Create a batch of chained v2 records from an array of inputs.
+ * Each record is automatically linked to the previous one.
+ */
+export function createV2Chain(
+  inputs: Array<{
+    actor: string;
+    tps: string;
+    event: string;
+    data?: Record<string, unknown>;
+    indexes?: Record<string, string>;
+    id?: string;
+  }>,
+): OpenLogsV2Record[] {
+  if (!inputs || inputs.length === 0) {
+    throw new Error("createV2Chain requires at least one input");
+  }
+  const records: OpenLogsV2Record[] = [];
+  let prev_hash: string | null = null;
+  for (const input of inputs) {
+    const record = createV2Record(input, prev_hash);
+    records.push(record);
+    prev_hash = record.hash;
+  }
+  return records;
 }
 
 // =============================================================================
@@ -205,7 +257,6 @@ export async function verifyRecordSignature(
 ): Promise<boolean> {
   if (!record.sig) return false;
   if (record.sig.alg !== "ed25519") return false;
-  const { hexToBytes } = await import("./crypto");
   const pub = hexToBytes(record.sig.publicKeyHex);
   const sig = hexToBytes(record.sig.sigHex);
   return ed25519Verify(sig, utf8ToBytes(record.hash), pub);

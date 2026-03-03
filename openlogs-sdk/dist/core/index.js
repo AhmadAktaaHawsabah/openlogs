@@ -5,9 +5,6 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -30,64 +27,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/core/crypto.ts
-var crypto_exports = {};
-__export(crypto_exports, {
-  ed25519Sign: () => ed25519Sign,
-  ed25519Verify: () => ed25519Verify,
-  generateEd25519Keypair: () => generateEd25519Keypair,
-  hexToBytes: () => hexToBytes,
-  randomBytes: () => randomBytes,
-  sha256Hex: () => sha256Hex,
-  utf8ToBytes: () => utf8ToBytes
-});
-function hexToBytes(hex) {
-  const clean = hex.trim().toLowerCase();
-  if (clean.length % 2 !== 0) throw new Error("Invalid hex");
-  const out = new Uint8Array(clean.length / 2);
-  for (let i = 0; i < out.length; i++) {
-    out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
-  }
-  return out;
-}
-function utf8ToBytes(s) {
-  return new TextEncoder().encode(s);
-}
-function sha256Hex(data) {
-  const bytes = typeof data === "string" ? utf8ToBytes(data) : data;
-  return (0, import_utils.bytesToHex)((0, import_sha2.sha256)(bytes));
-}
-function randomBytes(length) {
-  const g = globalThis;
-  if (g.crypto?.getRandomValues) {
-    const out = new Uint8Array(length);
-    g.crypto.getRandomValues(out);
-    return out;
-  }
-  const nodeCrypto = require("crypto");
-  return new Uint8Array(nodeCrypto.randomBytes(length));
-}
-async function generateEd25519Keypair() {
-  const privateKey = randomBytes(32);
-  const publicKey = await ed.getPublicKeyAsync(privateKey);
-  return { privateKey, publicKey };
-}
-async function ed25519Sign(message, privateKey) {
-  return ed.signAsync(message, privateKey);
-}
-async function ed25519Verify(sig, message, publicKey) {
-  return ed.verifyAsync(sig, message, publicKey);
-}
-var ed, import_sha2, import_utils;
-var init_crypto = __esm({
-  "src/core/crypto.ts"() {
-    "use strict";
-    ed = __toESM(require("@noble/ed25519"));
-    import_sha2 = require("@noble/hashes/sha2.js");
-    import_utils = require("@noble/hashes/utils.js");
-  }
-});
-
 // src/core/index.ts
 var core_exports = {};
 __export(core_exports, {
@@ -97,6 +36,7 @@ __export(core_exports, {
   createEntry: () => createEntry,
   createPayload: () => createPayload,
   createRecord: () => createRecord,
+  createV2Chain: () => createV2Chain,
   createV2Record: () => createV2Record,
   decodeTpsUid: () => decodeTpsUid,
   ed25519Sign: () => ed25519Sign,
@@ -154,13 +94,56 @@ function canonicalize(value) {
   return JSON.stringify(normalize(value));
 }
 
-// src/core/index.ts
-init_crypto();
+// src/core/crypto.ts
+var ed = __toESM(require("@noble/ed25519"));
+var import_sha2 = require("@noble/hashes/sha2.js");
+var import_utils = require("@noble/hashes/utils.js");
+function hexToBytes(hex) {
+  const clean = hex.trim().toLowerCase();
+  if (clean.length % 2 !== 0) throw new Error("Invalid hex");
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
+function utf8ToBytes(s) {
+  return new TextEncoder().encode(s);
+}
+function sha256Hex(data) {
+  const bytes = typeof data === "string" ? utf8ToBytes(data) : data;
+  return (0, import_utils.bytesToHex)((0, import_sha2.sha256)(bytes));
+}
+function randomBytes(length) {
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    const out = new Uint8Array(length);
+    globalThis.crypto.getRandomValues(out);
+    return out;
+  }
+  try {
+    const nodeCrypto = require("crypto");
+    return new Uint8Array(nodeCrypto.randomBytes(length));
+  } catch {
+    throw new Error(
+      "No cryptographic random source available. Use Node.js >= 19 or a browser with Web Crypto API."
+    );
+  }
+}
+async function generateEd25519Keypair() {
+  const privateKey = randomBytes(32);
+  const publicKey = await ed.getPublicKeyAsync(privateKey);
+  return { privateKey, publicKey };
+}
+async function ed25519Sign(message, privateKey) {
+  return ed.signAsync(message, privateKey);
+}
+async function ed25519Verify(sig, message, publicKey) {
+  return ed.verifyAsync(sig, message, publicKey);
+}
 
 // src/core/chain.ts
 var import_utils3 = require("@noble/hashes/utils.js");
 var import_ulid = require("ulid");
-init_crypto();
 
 // src/core/tps.ts
 var import_tps_standard = require("@nextera.one/tps-standard");
@@ -189,7 +172,6 @@ function normalizeTpsUri(input) {
 
 // src/core/tpsuid.ts
 var import_tps_standard2 = require("@nextera.one/tps-standard");
-init_crypto();
 var import_utils2 = require("@noble/hashes/utils.js");
 function generateTpsUid(tpsString) {
   const randomContext = (0, import_utils2.bytesToHex)(randomBytes(8));
@@ -241,6 +223,14 @@ function createEntry(input) {
   };
 }
 function computeV2RecordHash(entry, prev_hash) {
+  if (!entry || typeof entry !== "object" || entry.spec !== "openlogs.v2") {
+    throw new Error(
+      "computeV2RecordHash requires a valid OpenLogsV2Entry with spec 'openlogs.v2'"
+    );
+  }
+  if (prev_hash !== null && typeof prev_hash !== "string") {
+    throw new Error("prev_hash must be a string or null");
+  }
   const body = canonicalize({ entry, prev_hash });
   return sha256Hex(body);
 }
@@ -250,6 +240,15 @@ function createV2Record(input, prev_hash) {
   return { entry, hash, prev_hash };
 }
 async function signV2Record(record, keys) {
+  if (!record || !record.hash) {
+    throw new Error("signV2Record requires a record with a valid hash");
+  }
+  if (!(keys.privateKey instanceof Uint8Array) || keys.privateKey.length !== 32) {
+    throw new Error("privateKey must be a 32-byte Uint8Array");
+  }
+  if (!(keys.publicKey instanceof Uint8Array) || keys.publicKey.length !== 32) {
+    throw new Error("publicKey must be a 32-byte Uint8Array");
+  }
   const sigBytes = await ed25519Sign(utf8ToBytes(record.hash), keys.privateKey);
   const sig = {
     alg: "ed25519",
@@ -262,9 +261,8 @@ async function signV2Record(record, keys) {
 async function verifyV2RecordSignature(record) {
   if (!record.sig) return false;
   if (record.sig.alg !== "ed25519") return false;
-  const { hexToBytes: hexToBytes2 } = await Promise.resolve().then(() => (init_crypto(), crypto_exports));
-  const pub = hexToBytes2(record.sig.publicKeyHex);
-  const sig = hexToBytes2(record.sig.sigHex);
+  const pub = hexToBytes(record.sig.publicKeyHex);
+  const sig = hexToBytes(record.sig.sigHex);
   return ed25519Verify(sig, utf8ToBytes(record.hash), pub);
 }
 async function verifyV2Chain(records) {
@@ -284,6 +282,19 @@ async function verifyV2Chain(records) {
     }
   }
   return { ok: true };
+}
+function createV2Chain(inputs) {
+  if (!inputs || inputs.length === 0) {
+    throw new Error("createV2Chain requires at least one input");
+  }
+  const records = [];
+  let prev_hash = null;
+  for (const input of inputs) {
+    const record = createV2Record(input, prev_hash);
+    records.push(record);
+    prev_hash = record.hash;
+  }
+  return records;
 }
 function createPayload(input) {
   return {
@@ -318,9 +329,8 @@ async function signRecord(record, keys) {
 async function verifyRecordSignature(record) {
   if (!record.sig) return false;
   if (record.sig.alg !== "ed25519") return false;
-  const { hexToBytes: hexToBytes2 } = await Promise.resolve().then(() => (init_crypto(), crypto_exports));
-  const pub = hexToBytes2(record.sig.publicKeyHex);
-  const sig = hexToBytes2(record.sig.sigHex);
+  const pub = hexToBytes(record.sig.publicKeyHex);
+  const sig = hexToBytes(record.sig.sigHex);
   return ed25519Verify(sig, utf8ToBytes(record.hash), pub);
 }
 async function verifyChain(records) {
@@ -349,6 +359,7 @@ async function verifyChain(records) {
   createEntry,
   createPayload,
   createRecord,
+  createV2Chain,
   createV2Record,
   decodeTpsUid,
   ed25519Sign,

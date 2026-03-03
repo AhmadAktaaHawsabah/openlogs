@@ -1,10 +1,10 @@
-import * as ed from '@noble/ed25519';
-import { sha256 } from '@noble/hashes/sha2.js';
-import { bytesToHex } from '@noble/hashes/utils.js';
+import * as ed from "@noble/ed25519";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 
 export function hexToBytes(hex: string): Uint8Array {
   const clean = hex.trim().toLowerCase();
-  if (clean.length % 2 !== 0) throw new Error('Invalid hex');
+  if (clean.length % 2 !== 0) throw new Error("Invalid hex");
   const out = new Uint8Array(clean.length / 2);
   for (let i = 0; i < out.length; i++) {
     out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
@@ -17,22 +17,28 @@ export function utf8ToBytes(s: string): Uint8Array {
 }
 
 export function sha256Hex(data: Uint8Array | string): string {
-  const bytes = typeof data === 'string' ? utf8ToBytes(data) : data;
+  const bytes = typeof data === "string" ? utf8ToBytes(data) : data;
   return bytesToHex(sha256(bytes));
 }
 
 export function randomBytes(length: number): Uint8Array {
-  const g = globalThis as any;
-  if (g.crypto?.getRandomValues) {
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
     const out = new Uint8Array(length);
-    g.crypto.getRandomValues(out);
+    globalThis.crypto.getRandomValues(out);
     return out;
   }
 
-  // Node fallback
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const nodeCrypto = require('crypto') as typeof import('crypto');
-  return new Uint8Array(nodeCrypto.randomBytes(length));
+  // Fallback for older Node.js versions (< 19) using dynamic import-friendly approach
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const nodeCrypto = require("crypto") as typeof import("crypto");
+    return new Uint8Array(nodeCrypto.randomBytes(length));
+  } catch {
+    throw new Error(
+      "No cryptographic random source available. " +
+        "Use Node.js >= 19 or a browser with Web Crypto API.",
+    );
+  }
 }
 
 export async function generateEd25519Keypair(): Promise<{

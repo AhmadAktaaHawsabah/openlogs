@@ -17,6 +17,7 @@
     "commander": "^14.0.2"
   },
   "author": "NextEra.One",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@types/node": "^25.0.3",
     "typescript": "^5.9.3"

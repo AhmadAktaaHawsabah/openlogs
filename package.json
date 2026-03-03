@@ -1,0 +1,19 @@
+{
+  "name": "openlogs",
+  "private": true,
+  "description": "OpenLogs — Provable execution evidence (monorepo)",
+  "workspaces": [
+    "openlogs-sdk",
+    "openlogs-cli",
+    "openlogs-test"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "build:sdk": "npm run build -w openlogs-sdk",
+    "build:cli": "npm run build -w openlogs-cli",
+    "test:sdk": "npm run test -w openlogs-sdk",
+    "test:cli": "npm run test -w openlogs-cli",
+    "test:integration": "npm run test -w openlogs-test"
+  }
+}

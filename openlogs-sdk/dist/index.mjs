@@ -1,74 +1,8 @@
-var __defProp = Object.defineProperty;
-var __getOwnPropNames = Object.getOwnPropertyNames;
 var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
   get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
 }) : x)(function(x) {
   if (typeof require !== "undefined") return require.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
-});
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-};
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-
-// src/core/crypto.ts
-var crypto_exports = {};
-__export(crypto_exports, {
-  ed25519Sign: () => ed25519Sign,
-  ed25519Verify: () => ed25519Verify,
-  generateEd25519Keypair: () => generateEd25519Keypair,
-  hexToBytes: () => hexToBytes,
-  randomBytes: () => randomBytes,
-  sha256Hex: () => sha256Hex,
-  utf8ToBytes: () => utf8ToBytes
-});
-import * as ed from "@noble/ed25519";
-import { sha256 } from "@noble/hashes/sha2.js";
-import { bytesToHex } from "@noble/hashes/utils.js";
-function hexToBytes(hex) {
-  const clean = hex.trim().toLowerCase();
-  if (clean.length % 2 !== 0) throw new Error("Invalid hex");
-  const out = new Uint8Array(clean.length / 2);
-  for (let i = 0; i < out.length; i++) {
-    out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
-  }
-  return out;
-}
-function utf8ToBytes(s) {
-  return new TextEncoder().encode(s);
-}
-function sha256Hex(data) {
-  const bytes = typeof data === "string" ? utf8ToBytes(data) : data;
-  return bytesToHex(sha256(bytes));
-}
-function randomBytes(length) {
-  const g = globalThis;
-  if (g.crypto?.getRandomValues) {
-    const out = new Uint8Array(length);
-    g.crypto.getRandomValues(out);
-    return out;
-  }
-  const nodeCrypto = __require("crypto");
-  return new Uint8Array(nodeCrypto.randomBytes(length));
-}
-async function generateEd25519Keypair() {
-  const privateKey = randomBytes(32);
-  const publicKey = await ed.getPublicKeyAsync(privateKey);
-  return { privateKey, publicKey };
-}
-async function ed25519Sign(message, privateKey) {
-  return ed.signAsync(message, privateKey);
-}
-async function ed25519Verify(sig, message, publicKey) {
-  return ed.verifyAsync(sig, message, publicKey);
-}
-var init_crypto = __esm({
-  "src/core/crypto.ts"() {
-    "use strict";
-  }
 });
 
 // src/core/canonical.ts
@@ -108,11 +42,54 @@ function canonicalize(value) {
   return JSON.stringify(normalize(value));
 }
 
-// src/core/index.ts
-init_crypto();
+// src/core/crypto.ts
+import * as ed from "@noble/ed25519";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
+function hexToBytes(hex) {
+  const clean = hex.trim().toLowerCase();
+  if (clean.length % 2 !== 0) throw new Error("Invalid hex");
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
+function utf8ToBytes(s) {
+  return new TextEncoder().encode(s);
+}
+function sha256Hex(data) {
+  const bytes = typeof data === "string" ? utf8ToBytes(data) : data;
+  return bytesToHex(sha256(bytes));
+}
+function randomBytes(length) {
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    const out = new Uint8Array(length);
+    globalThis.crypto.getRandomValues(out);
+    return out;
+  }
+  try {
+    const nodeCrypto = __require("crypto");
+    return new Uint8Array(nodeCrypto.randomBytes(length));
+  } catch {
+    throw new Error(
+      "No cryptographic random source available. Use Node.js >= 19 or a browser with Web Crypto API."
+    );
+  }
+}
+async function generateEd25519Keypair() {
+  const privateKey = randomBytes(32);
+  const publicKey = await ed.getPublicKeyAsync(privateKey);
+  return { privateKey, publicKey };
+}
+async function ed25519Sign(message, privateKey) {
+  return ed.signAsync(message, privateKey);
+}
+async function ed25519Verify(sig, message, publicKey) {
+  return ed.verifyAsync(sig, message, publicKey);
+}
 
 // src/core/chain.ts
-init_crypto();
 import { bytesToHex as bytesToHex3 } from "@noble/hashes/utils.js";
 import { ulid } from "ulid";
 
@@ -142,7 +119,6 @@ function normalizeTpsUri(input) {
 }
 
 // src/core/tpsuid.ts
-init_crypto();
 import { TPSUID7RB } from "@nextera.one/tps-standard";
 import { bytesToHex as bytesToHex2 } from "@noble/hashes/utils.js";
 function generateTpsUid(tpsString) {
@@ -195,6 +171,14 @@ function createEntry(input) {
   };
 }
 function computeV2RecordHash(entry, prev_hash) {
+  if (!entry || typeof entry !== "object" || entry.spec !== "openlogs.v2") {
+    throw new Error(
+      "computeV2RecordHash requires a valid OpenLogsV2Entry with spec 'openlogs.v2'"
+    );
+  }
+  if (prev_hash !== null && typeof prev_hash !== "string") {
+    throw new Error("prev_hash must be a string or null");
+  }
   const body = canonicalize({ entry, prev_hash });
   return sha256Hex(body);
 }
@@ -204,6 +188,15 @@ function createV2Record(input, prev_hash) {
   return { entry, hash, prev_hash };
 }
 async function signV2Record(record, keys) {
+  if (!record || !record.hash) {
+    throw new Error("signV2Record requires a record with a valid hash");
+  }
+  if (!(keys.privateKey instanceof Uint8Array) || keys.privateKey.length !== 32) {
+    throw new Error("privateKey must be a 32-byte Uint8Array");
+  }
+  if (!(keys.publicKey instanceof Uint8Array) || keys.publicKey.length !== 32) {
+    throw new Error("publicKey must be a 32-byte Uint8Array");
+  }
   const sigBytes = await ed25519Sign(utf8ToBytes(record.hash), keys.privateKey);
   const sig = {
     alg: "ed25519",
@@ -216,9 +209,8 @@ async function signV2Record(record, keys) {
 async function verifyV2RecordSignature(record) {
   if (!record.sig) return false;
   if (record.sig.alg !== "ed25519") return false;
-  const { hexToBytes: hexToBytes2 } = await Promise.resolve().then(() => (init_crypto(), crypto_exports));
-  const pub = hexToBytes2(record.sig.publicKeyHex);
-  const sig = hexToBytes2(record.sig.sigHex);
+  const pub = hexToBytes(record.sig.publicKeyHex);
+  const sig = hexToBytes(record.sig.sigHex);
   return ed25519Verify(sig, utf8ToBytes(record.hash), pub);
 }
 async function verifyV2Chain(records) {
@@ -238,6 +230,19 @@ async function verifyV2Chain(records) {
     }
   }
   return { ok: true };
+}
+function createV2Chain(inputs) {
+  if (!inputs || inputs.length === 0) {
+    throw new Error("createV2Chain requires at least one input");
+  }
+  const records = [];
+  let prev_hash = null;
+  for (const input of inputs) {
+    const record = createV2Record(input, prev_hash);
+    records.push(record);
+    prev_hash = record.hash;
+  }
+  return records;
 }
 function createPayload(input) {
   return {
@@ -272,9 +277,8 @@ async function signRecord(record, keys) {
 async function verifyRecordSignature(record) {
   if (!record.sig) return false;
   if (record.sig.alg !== "ed25519") return false;
-  const { hexToBytes: hexToBytes2 } = await Promise.resolve().then(() => (init_crypto(), crypto_exports));
-  const pub = hexToBytes2(record.sig.publicKeyHex);
-  const sig = hexToBytes2(record.sig.sigHex);
+  const pub = hexToBytes(record.sig.publicKeyHex);
+  const sig = hexToBytes(record.sig.sigHex);
   return ed25519Verify(sig, utf8ToBytes(record.hash), pub);
 }
 async function verifyChain(records) {
@@ -295,19 +299,152 @@ async function verifyChain(records) {
   }
   return { ok: true };
 }
+
+// src/keys.ts
+var KeyRegistry = class {
+  keys = /* @__PURE__ */ new Map();
+  /**
+   * Register a trusted signing key.
+   */
+  addKey(key) {
+    if (!key.kid) throw new Error("Key must have a kid (key identifier)");
+    if (!key.publicKeyHex) throw new Error("Key must have a publicKeyHex");
+    this.keys.set(key.kid, key);
+  }
+  /**
+   * Remove a key from the registry.
+   */
+  removeKey(kid) {
+    return this.keys.delete(kid);
+  }
+  /**
+   * Mark a key as revoked at a specific time.
+   */
+  revokeKey(kid, revokedAt) {
+    const key = this.keys.get(kid);
+    if (!key) throw new Error(`Key '${kid}' not found in registry`);
+    key.revokedAt = revokedAt ?? (/* @__PURE__ */ new Date()).toISOString();
+  }
+  /**
+   * Get a key by its identifier.
+   */
+  getKey(kid) {
+    return this.keys.get(kid);
+  }
+  /**
+   * Check if a key is currently trusted (registered and not revoked).
+   */
+  isTrusted(kid) {
+    const key = this.keys.get(kid);
+    if (!key) return false;
+    return !key.revokedAt;
+  }
+  /**
+   * List all registered keys.
+   */
+  listKeys() {
+    return Array.from(this.keys.values());
+  }
+  /**
+   * List only active (non-revoked) keys.
+   */
+  listActiveKeys() {
+    return this.listKeys().filter((k) => !k.revokedAt);
+  }
+  /**
+   * Verify a record's signature against the registry.
+   * Returns true if the signature is valid AND the key is trusted.
+   */
+  async verifyRecord(record) {
+    if (!record.sig) {
+      return { valid: false, trusted: false };
+    }
+    const kid = record.sig.kid;
+    const valid = await verifyV2RecordSignature(record);
+    if (!valid) {
+      return { valid: false, trusted: false, kid };
+    }
+    if (kid) {
+      const trusted = this.isTrusted(kid);
+      return { valid: true, trusted, kid };
+    }
+    const pubHex = record.sig.publicKeyHex;
+    const matchingKey = this.listKeys().find((k) => k.publicKeyHex === pubHex);
+    if (matchingKey) {
+      return {
+        valid: true,
+        trusted: !matchingKey.revokedAt,
+        kid: matchingKey.kid
+      };
+    }
+    return { valid: true, trusted: false, kid };
+  }
+  /**
+   * Verify all records in a chain against the registry.
+   * Returns details about each record's signature status.
+   */
+  async verifyChainKeys(records) {
+    const results = [];
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      if (!record.sig) {
+        results.push({
+          index: i,
+          valid: true,
+          trusted: false,
+          unsigned: true
+        });
+      } else {
+        const result = await this.verifyRecord(record);
+        results.push({ index: i, ...result, unsigned: false });
+      }
+    }
+    return results;
+  }
+};
+function extractSigningKeys(records) {
+  const seen = /* @__PURE__ */ new Set();
+  const keys = [];
+  for (const record of records) {
+    if (!record.sig) continue;
+    const identifier = record.sig.kid ?? record.sig.publicKeyHex;
+    if (!seen.has(identifier)) {
+      seen.add(identifier);
+      keys.push({
+        kid: record.sig.kid,
+        publicKeyHex: record.sig.publicKeyHex
+      });
+    }
+  }
+  return keys;
+}
+function groupBySigningKey(records) {
+  const groups = /* @__PURE__ */ new Map();
+  for (const record of records) {
+    const key = record.sig ? record.sig.kid ?? record.sig.publicKeyHex : "__unsigned__";
+    const group = groups.get(key) ?? [];
+    group.push(record);
+    groups.set(key, group);
+  }
+  return groups;
+}
 export {
+  KeyRegistry,
   canonicalize,
   computeRecordHash,
   computeV2RecordHash,
   createEntry,
   createPayload,
   createRecord,
+  createV2Chain,
   createV2Record,
   decodeTpsUid,
   ed25519Sign,
   ed25519Verify,
+  extractSigningKeys,
   generateEd25519Keypair,
   generateTpsUid,
+  groupBySigningKey,
   hexToBytes,
   normalizeTpsUri,
   randomBytes,
