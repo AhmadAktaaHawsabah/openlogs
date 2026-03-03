@@ -89,10 +89,12 @@ describe("openlogs-sdk chain", () => {
 
     const signed = await signV2Record(r1, keys);
 
-    // Tamper with the signature
+    // Tamper with the signature by flipping the first hex character
+    const origSig = signed.sig!.sigHex;
+    const flippedChar = origSig[0] === "0" ? "1" : "0";
     const tampered = {
       ...signed,
-      sig: { ...signed.sig!, sigHex: signed.sig!.sigHex.replace(/^./, "0") },
+      sig: { ...signed.sig!, sigHex: flippedChar + origSig.slice(1) },
     };
     const res = await verifyV2Chain([tampered]);
     expect(res.ok).toBe(false);

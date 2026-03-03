@@ -1,6 +1,6 @@
 {
   "name": "@nextera.one/openlogs-cli",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "OpenLogs CLI v2 (Reality Containers)",
   "bin": {
     "openlogs": "dist/index.js"

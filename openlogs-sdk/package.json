@@ -1,6 +1,6 @@
 {
   "name": "@nextera.one/openlogs-sdk",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "TypeScript/JavaScript SDK for OpenLogs v2 (Reality Containers)",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
