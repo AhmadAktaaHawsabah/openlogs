@@ -4,7 +4,7 @@
  * v2 consolidates actor, time, and location into the TPS Reality String.
  */
 
-export type OpenLogsAlg = 'ed25519';
+export type OpenLogsAlg = "ed25519";
 
 export interface OpenLogsSignature {
   alg: OpenLogsAlg;
@@ -16,12 +16,15 @@ export interface OpenLogsSignature {
 /**
  * OpenLogs v2 Entry
  * TPS is the Primary Key - time, location, actor, and proof are intrinsic.
+ * Actor is mandatory - identifies the entity responsible for the event.
  */
 export interface OpenLogsV2Entry {
   /** Specification version */
-  spec: 'openlogs.v2';
+  spec: "openlogs.v2";
   /** Unique entry identifier (ULID) */
   id: string;
+  /** Actor identifier - who/what caused this event (e.g., "user:alice", "system:cron", "device:sensor-1") */
+  actor: string;
   /** TPS Reality String with intrinsic L:, A:, T:, and optional ! signature */
   tps: string;
   /** Event type (e.g., "door.unlock", "step.start", "anomaly.detected") */

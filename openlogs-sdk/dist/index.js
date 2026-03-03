@@ -98,9 +98,11 @@ __export(index_exports, {
   createPayload: () => createPayload,
   createRecord: () => createRecord,
   createV2Record: () => createV2Record,
+  decodeTpsUid: () => decodeTpsUid,
   ed25519Sign: () => ed25519Sign,
   ed25519Verify: () => ed25519Verify,
   generateEd25519Keypair: () => generateEd25519Keypair,
+  generateTpsUid: () => generateTpsUid,
   hexToBytes: () => hexToBytes,
   normalizeTpsUri: () => normalizeTpsUri,
   randomBytes: () => randomBytes,
@@ -156,8 +158,8 @@ function canonicalize(value) {
 init_crypto();
 
 // src/core/chain.ts
+var import_utils3 = require("@noble/hashes/utils.js");
 var import_ulid = require("ulid");
-var import_utils2 = require("@noble/hashes/utils.js");
 init_crypto();
 
 // src/core/tps.ts
@@ -185,12 +187,54 @@ function normalizeTpsUri(input) {
   }
 }
 
+// src/core/tpsuid.ts
+var import_tps_standard2 = require("@nextera.one/tps-standard");
+init_crypto();
+var import_utils2 = require("@noble/hashes/utils.js");
+function generateTpsUid(tpsString) {
+  const randomContext = (0, import_utils2.bytesToHex)(randomBytes(8));
+  const tpsWithContext = `${tpsString}?ctx=${randomContext}`;
+  try {
+    const uid = import_tps_standard2.TPSUID7RB.encodeBinaryB64(tpsWithContext, { compress: true });
+    return uid;
+  } catch (err) {
+    const fallbackUid = import_tps_standard2.TPSUID7RB.encodeBinaryB64(
+      `${tpsString}#${randomContext}`,
+      { compress: true }
+    );
+    return fallbackUid;
+  }
+}
+function decodeTpsUid(uid) {
+  try {
+    const decoded = import_tps_standard2.TPSUID7RB.decodeBinaryB64(uid);
+    if (!decoded.tps) {
+      throw new Error("Failed to decode TPS-UID");
+    }
+    const ctxMatch = decoded.tps.match(/\?ctx=([a-f0-9]+)/);
+    const context = ctxMatch ? ctxMatch[1] : void 0;
+    const tps = decoded.tps.replace(/\?ctx=[a-f0-9]+$/, "");
+    return { tps, context };
+  } catch (err) {
+    throw new Error(
+      `Failed to decode TPS-UID: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+}
+
 // src/core/chain.ts
 function createEntry(input) {
+  if (!input.actor || input.actor.trim().length === 0) {
+    throw new Error(
+      'actor is required (e.g., "user:alice", "system:cron", "device:sensor-1")'
+    );
+  }
+  const normalizedTps = normalizeTpsUri(input.tps);
   return {
     spec: "openlogs.v2",
-    id: input.id ?? (0, import_ulid.ulid)(),
-    tps: normalizeTpsUri(input.tps),
+    id: input.id ?? generateTpsUid(normalizedTps),
+    actor: input.actor.trim(),
+    tps: normalizedTps,
     event: input.event,
     ...input.data && { data: input.data },
     ...input.indexes && { indexes: input.indexes }
@@ -209,8 +253,8 @@ async function signV2Record(record, keys) {
   const sigBytes = await ed25519Sign(utf8ToBytes(record.hash), keys.privateKey);
   const sig = {
     alg: "ed25519",
-    publicKeyHex: (0, import_utils2.bytesToHex)(keys.publicKey),
-    sigHex: (0, import_utils2.bytesToHex)(sigBytes),
+    publicKeyHex: (0, import_utils3.bytesToHex)(keys.publicKey),
+    sigHex: (0, import_utils3.bytesToHex)(sigBytes),
     kid: keys.kid
   };
   return { ...record, sig };
@@ -265,8 +309,8 @@ async function signRecord(record, keys) {
   const sigBytes = await ed25519Sign(utf8ToBytes(record.hash), keys.privateKey);
   const sig = {
     alg: "ed25519",
-    publicKeyHex: (0, import_utils2.bytesToHex)(keys.publicKey),
-    sigHex: (0, import_utils2.bytesToHex)(sigBytes),
+    publicKeyHex: (0, import_utils3.bytesToHex)(keys.publicKey),
+    sigHex: (0, import_utils3.bytesToHex)(sigBytes),
     kid: keys.kid
   };
   return { ...record, sig };
@@ -306,9 +350,11 @@ async function verifyChain(records) {
   createPayload,
   createRecord,
   createV2Record,
+  decodeTpsUid,
   ed25519Sign,
   ed25519Verify,
   generateEd25519Keypair,
+  generateTpsUid,
   hexToBytes,
   normalizeTpsUri,
   randomBytes,

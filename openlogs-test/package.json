@@ -1,0 +1,20 @@
+{
+  "name": "@nextera.one/openlogs-test",
+  "version": "2.0.0",
+  "description": "Comprehensive test suite and examples for OpenLogs SDK v2",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-modules test.js",
+    "test:ts": "tsx test.ts",
+    "build": "tsc",
+    "examples": "node test.js"
+  },
+  "dependencies": {
+    "@nextera.one/openlogs-sdk": "file:../openlogs-sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

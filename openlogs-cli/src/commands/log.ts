@@ -1,36 +1,46 @@
-import { Command } from 'commander';
-import chalk from 'chalk';
+import { Command } from "commander";
+import chalk from "chalk";
 
-import { createV2Record, signV2Record } from '@nextera.one/openlogs-sdk';
-import { appendJsonLine, readJsonFile, readJsonLines } from './fsutil';
+import { createV2Record, signV2Record } from "@nextera.one/openlogs-sdk";
+import { appendJsonLine, readJsonFile, readJsonLines } from "./fsutil";
 
 function hexToBytes(hex: string): Uint8Array {
-  return Uint8Array.from(Buffer.from(hex, 'hex'));
+  return Uint8Array.from(Buffer.from(hex, "hex"));
 }
 
 type IdentityFile = {
-  alg: 'ed25519';
+  alg: "ed25519";
   kid?: string;
   privateKeyHex: string;
   publicKeyHex: string;
 };
 
-export const logCommand = new Command('log')
-  .description('Append a new OpenLogs v2 record to a JSONL file')
+export const logCommand = new Command("log")
+  .description("Append a new OpenLogs v2 record to a JSONL file")
   .requiredOption(
-    '-t, --tps <tps>',
-    'TPS Reality String (e.g., tps://L:bldg=hq/A:user:123@T:greg.y26.M01!sha256:abc)',
+    "-a, --actor <actor>",
+    "Actor identifier (e.g., user:alice, system:cron, device:sensor-1)",
   )
-  .requiredOption('-e, --event <event>', 'Event type (e.g., door.unlock, step.start)')
-  .option('-d, --data <json>', 'JSON payload string', '{}')
-  .option('-x, --indexes <json>', 'JSON indexes for querying (e.g., {"s2":"88d9b4"})')
-  .option('-f, --file <path>', 'Output JSONL file', './openlogs.jsonl')
+  .requiredOption(
+    "-t, --tps <tps>",
+    "TPS Reality String (e.g., tps://L:bldg=hq@T:greg.y26.M01)",
+  )
+  .requiredOption(
+    "-e, --event <event>",
+    "Event type (e.g., door.unlock, step.start)",
+  )
+  .option("-d, --data <json>", "JSON payload string", "{}")
   .option(
-    '-k, --key <path>',
-    'Identity JSON path (for signing)',
-    './.openlogs/identity.json',
+    "-x, --indexes <json>",
+    'JSON indexes for querying (e.g., {"s2":"88d9b4"})',
   )
-  .option('--unsigned', 'Do not sign (even if key is available)')
+  .option("-f, --file <path>", "Output JSONL file", "./openlogs.jsonl")
+  .option(
+    "-k, --key <path>",
+    "Identity JSON path (for signing)",
+    "./.openlogs/identity.json",
+  )
+  .option("--unsigned", "Do not sign (even if key is available)")
   .action(async (options) => {
     const filePath = String(options.file);
 
@@ -47,7 +57,9 @@ export const logCommand = new Command('log')
     // Parse data payload
     let data: Record<string, unknown> | undefined;
     try {
-      const parsed = options.data ? JSON.parse(String(options.data)) : undefined;
+      const parsed = options.data
+        ? JSON.parse(String(options.data))
+        : undefined;
       if (parsed && Object.keys(parsed).length > 0) {
         data = parsed;
       }
@@ -70,6 +82,7 @@ export const logCommand = new Command('log')
     // Create v2 record
     const record = createV2Record(
       {
+        actor: String(options.actor),
         tps: String(options.tps),
         event: String(options.event),
         data,
@@ -96,7 +109,7 @@ export const logCommand = new Command('log')
     }
 
     appendJsonLine(filePath, out);
-    console.log(chalk.green('✅ Logged (OpenLogs v2)'));
+    console.log(chalk.green("✅ Logged (OpenLogs v2)"));
     console.log(`id:    ${out.entry.id}`);
     console.log(`event: ${out.entry.event}`);
     console.log(`hash:  ${out.hash}`);

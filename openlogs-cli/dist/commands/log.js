@@ -9,17 +9,18 @@ const chalk_1 = __importDefault(require("chalk"));
 const openlogs_sdk_1 = require("@nextera.one/openlogs-sdk");
 const fsutil_1 = require("./fsutil");
 function hexToBytes(hex) {
-    return Uint8Array.from(Buffer.from(hex, 'hex'));
+    return Uint8Array.from(Buffer.from(hex, "hex"));
 }
-exports.logCommand = new commander_1.Command('log')
-    .description('Append a new OpenLogs v2 record to a JSONL file')
-    .requiredOption('-t, --tps <tps>', 'TPS Reality String (e.g., tps://L:bldg=hq/A:user:123@T:greg.y26.M01!sha256:abc)')
-    .requiredOption('-e, --event <event>', 'Event type (e.g., door.unlock, step.start)')
-    .option('-d, --data <json>', 'JSON payload string', '{}')
-    .option('-x, --indexes <json>', 'JSON indexes for querying (e.g., {"s2":"88d9b4"})')
-    .option('-f, --file <path>', 'Output JSONL file', './openlogs.jsonl')
-    .option('-k, --key <path>', 'Identity JSON path (for signing)', './.openlogs/identity.json')
-    .option('--unsigned', 'Do not sign (even if key is available)')
+exports.logCommand = new commander_1.Command("log")
+    .description("Append a new OpenLogs v2 record to a JSONL file")
+    .requiredOption("-a, --actor <actor>", "Actor identifier (e.g., user:alice, system:cron, device:sensor-1)")
+    .requiredOption("-t, --tps <tps>", "TPS Reality String (e.g., tps://L:bldg=hq@T:greg.y26.M01)")
+    .requiredOption("-e, --event <event>", "Event type (e.g., door.unlock, step.start)")
+    .option("-d, --data <json>", "JSON payload string", "{}")
+    .option("-x, --indexes <json>", 'JSON indexes for querying (e.g., {"s2":"88d9b4"})')
+    .option("-f, --file <path>", "Output JSONL file", "./openlogs.jsonl")
+    .option("-k, --key <path>", "Identity JSON path (for signing)", "./.openlogs/identity.json")
+    .option("--unsigned", "Do not sign (even if key is available)")
     .action(async (options) => {
     const filePath = String(options.file);
     // Read previous hash from chain
@@ -35,7 +36,9 @@ exports.logCommand = new commander_1.Command('log')
     // Parse data payload
     let data;
     try {
-        const parsed = options.data ? JSON.parse(String(options.data)) : undefined;
+        const parsed = options.data
+            ? JSON.parse(String(options.data))
+            : undefined;
         if (parsed && Object.keys(parsed).length > 0) {
             data = parsed;
         }
@@ -57,6 +60,7 @@ exports.logCommand = new commander_1.Command('log')
     }
     // Create v2 record
     const record = (0, openlogs_sdk_1.createV2Record)({
+        actor: String(options.actor),
         tps: String(options.tps),
         event: String(options.event),
         data,
@@ -79,7 +83,7 @@ exports.logCommand = new commander_1.Command('log')
         }
     }
     (0, fsutil_1.appendJsonLine)(filePath, out);
-    console.log(chalk_1.default.green('✅ Logged (OpenLogs v2)'));
+    console.log(chalk_1.default.green("✅ Logged (OpenLogs v2)"));
     console.log(`id:    ${out.entry.id}`);
     console.log(`event: ${out.entry.event}`);
     console.log(`hash:  ${out.hash}`);

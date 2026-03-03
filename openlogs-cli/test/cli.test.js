@@ -45,6 +45,8 @@ test('init + log + verify roundtrip', () => {
   const log1 = runOpenLogs(
     [
       'log',
+      '--actor',
+      'system:test',
       '--event',
       'test.one',
       '--tps',
@@ -59,6 +61,8 @@ test('init + log + verify roundtrip', () => {
   const log2 = runOpenLogs(
     [
       'log',
+      '--actor',
+      'system:test',
       '--event',
       'test.two',
       '--tps',

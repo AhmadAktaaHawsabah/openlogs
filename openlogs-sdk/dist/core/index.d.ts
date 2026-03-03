@@ -3,7 +3,7 @@
  * -----------------------
  * v2 consolidates actor, time, and location into the TPS Reality String.
  */
-type OpenLogsAlg = 'ed25519';
+type OpenLogsAlg = "ed25519";
 interface OpenLogsSignature {
     alg: OpenLogsAlg;
     publicKeyHex: string;
@@ -13,12 +13,15 @@ interface OpenLogsSignature {
 /**
  * OpenLogs v2 Entry
  * TPS is the Primary Key - time, location, actor, and proof are intrinsic.
+ * Actor is mandatory - identifies the entity responsible for the event.
  */
 interface OpenLogsV2Entry {
     /** Specification version */
-    spec: 'openlogs.v2';
+    spec: "openlogs.v2";
     /** Unique entry identifier (ULID) */
     id: string;
+    /** Actor identifier - who/what caused this event (e.g., "user:alice", "system:cron", "device:sensor-1") */
+    actor: string;
     /** TPS Reality String with intrinsic L:, A:, T:, and optional ! signature */
     tps: string;
     /** Event type (e.g., "door.unlock", "step.start", "anomaly.detected") */
@@ -80,9 +83,12 @@ declare function ed25519Verify(sig: Uint8Array, message: Uint8Array, publicKey: 
 
 /**
  * Create an OpenLogs v2 entry
- * TPS is the primary key - time, location, actor are intrinsic to the TPS string.
+ * TPS is the primary key - time, location, calendar are intrinsic.
+ * Actor is mandatory - identifies the entity responsible for the event.
+ * ID is a TPS-UID with random context encoded to binary.
  */
 declare function createEntry(input: {
+    actor: string;
     tps: string;
     event: string;
     data?: Record<string, unknown>;
@@ -95,8 +101,10 @@ declare function createEntry(input: {
 declare function computeV2RecordHash(entry: OpenLogsV2Entry, prev_hash: string | null): string;
 /**
  * Create an OpenLogs v2 record with hash chain
+ * Requires actor, tps, and event at minimum.
  */
 declare function createV2Record(input: {
+    actor: string;
     tps: string;
     event: string;
     data?: Record<string, unknown>;
@@ -144,4 +152,24 @@ declare function verifyChain(records: OpenLogsRecord[]): Promise<VerifyResult>;
 
 declare function normalizeTpsUri(input: string): string;
 
-export { type OpenLogsAlg, type OpenLogsPayload, type OpenLogsRecord, type OpenLogsSignature, type OpenLogsV2Entry, type OpenLogsV2Record, type VerifyResult, canonicalize, computeRecordHash, computeV2RecordHash, createEntry, createPayload, createRecord, createV2Record, ed25519Sign, ed25519Verify, generateEd25519Keypair, hexToBytes, normalizeTpsUri, randomBytes, sha256Hex, signRecord, signV2Record, utf8ToBytes, verifyChain, verifyRecordSignature, verifyV2Chain, verifyV2RecordSignature };
+/**
+ * Generate a TPS-UID for OpenLogs entries.
+ * Uses the TPS string as temporal part and adds random context.
+ * Returns a reversible binary base64url encoded ID.
+ *
+ * @param tpsString The normalized TPS Reality String
+ * @returns TPS-UID in binary base64url format
+ */
+declare function generateTpsUid(tpsString: string): string;
+/**
+ * Decode a TPS-UID back to its original TPS string with context.
+ *
+ * @param uid The TPS-UID in binary base64url format
+ * @returns Object with decoded TPS string and context
+ */
+declare function decodeTpsUid(uid: string): {
+    tps: string;
+    context?: string;
+};
+
+export { type OpenLogsAlg, type OpenLogsPayload, type OpenLogsRecord, type OpenLogsSignature, type OpenLogsV2Entry, type OpenLogsV2Record, type VerifyResult, canonicalize, computeRecordHash, computeV2RecordHash, createEntry, createPayload, createRecord, createV2Record, decodeTpsUid, ed25519Sign, ed25519Verify, generateEd25519Keypair, generateTpsUid, hexToBytes, normalizeTpsUri, randomBytes, sha256Hex, signRecord, signV2Record, utf8ToBytes, verifyChain, verifyRecordSignature, verifyV2Chain, verifyV2RecordSignature };

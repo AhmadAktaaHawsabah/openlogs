@@ -1,0 +1,39 @@
+# Dependencies
+/**/node_modules
+**/package-lock.json
+
+# Build outputs
+/**/dist
+/**/build
+/**/out
+
+# Logs and temp
+npm-debug.log*
+*.log
+*.tmp
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Package artifacts
+*.tgz
+.npm/
+
+# Monorepo tools
+.turbo/
+.pnpm-store/

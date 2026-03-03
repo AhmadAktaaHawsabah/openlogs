@@ -11,6 +11,7 @@ describe("openlogs-sdk chain", () => {
   it("creates a valid hash chain", async () => {
     const r1 = createV2Record(
       {
+        actor: "system:test",
         tps: "tps://node:test@T:greg.m3.c1.y26.m01.d09.h14.m30.s25.m0",
         event: "test.one",
         data: { n: 1 },
@@ -20,6 +21,7 @@ describe("openlogs-sdk chain", () => {
 
     const r2 = createV2Record(
       {
+        actor: "system:test",
         tps: "tps://node:test@T:greg.m3.c1.y26.m01.d09.h14.m30.s26.m0",
         event: "test.two",
         data: { n: 2 },
@@ -34,6 +36,7 @@ describe("openlogs-sdk chain", () => {
   it("detects a broken prevHash", async () => {
     const r1 = createV2Record(
       {
+        actor: "system:test",
         tps: "tps://node:test@T:greg.m3.c1.y26.m01.d09.h14.m30.s25.m0",
         event: "test.one",
       },
@@ -41,6 +44,7 @@ describe("openlogs-sdk chain", () => {
     );
     const r2 = createV2Record(
       {
+        actor: "system:test",
         tps: "tps://node:test@T:greg.m3.c1.y26.m01.d09.h14.m30.s26.m0",
         event: "test.two",
       },
@@ -58,6 +62,7 @@ describe("openlogs-sdk chain", () => {
 
     const r1 = createV2Record(
       {
+        actor: "system:test",
         tps: "tps://node:test@T:greg.m3.c1.y26.m01.d09.h14.m30.s25.m0",
         event: "test.sig",
       },

@@ -1,6 +1,6 @@
-import { ulid } from "ulid";
 import { canonicalize } from "./canonical";
 import { bytesToHex } from "@noble/hashes/utils.js";
+import { ulid } from "ulid";
 
 import {
   OpenLogsV2Entry,
@@ -13,6 +13,7 @@ import {
 } from "./types";
 import { ed25519Sign, ed25519Verify, sha256Hex, utf8ToBytes } from "./crypto";
 import { normalizeTpsUri } from "./tps";
+import { generateTpsUid } from "./tpsuid";
 
 // =============================================================================
 // OpenLogs v2.0 Functions
@@ -20,19 +21,31 @@ import { normalizeTpsUri } from "./tps";
 
 /**
  * Create an OpenLogs v2 entry
- * TPS is the primary key - time, location, actor are intrinsic to the TPS string.
+ * TPS is the primary key - time, location, calendar are intrinsic.
+ * Actor is mandatory - identifies the entity responsible for the event.
+ * ID is a TPS-UID with random context encoded to binary.
  */
 export function createEntry(input: {
+  actor: string;
   tps: string;
   event: string;
   data?: Record<string, unknown>;
   indexes?: Record<string, string>;
   id?: string;
 }): OpenLogsV2Entry {
+  if (!input.actor || input.actor.trim().length === 0) {
+    throw new Error(
+      'actor is required (e.g., "user:alice", "system:cron", "device:sensor-1")',
+    );
+  }
+
+  const normalizedTps = normalizeTpsUri(input.tps);
+
   return {
     spec: "openlogs.v2",
-    id: input.id ?? ulid(),
-    tps: normalizeTpsUri(input.tps),
+    id: input.id ?? generateTpsUid(normalizedTps),
+    actor: input.actor.trim(),
+    tps: normalizedTps,
     event: input.event,
     ...(input.data && { data: input.data }),
     ...(input.indexes && { indexes: input.indexes }),
@@ -52,9 +65,11 @@ export function computeV2RecordHash(
 
 /**
  * Create an OpenLogs v2 record with hash chain
+ * Requires actor, tps, and event at minimum.
  */
 export function createV2Record(
   input: {
+    actor: string;
     tps: string;
     event: string;
     data?: Record<string, unknown>;

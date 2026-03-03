@@ -112,9 +112,9 @@ function canonicalize(value) {
 init_crypto();
 
 // src/core/chain.ts
-import { ulid } from "ulid";
 init_crypto();
-import { bytesToHex as bytesToHex2 } from "@noble/hashes/utils.js";
+import { bytesToHex as bytesToHex3 } from "@noble/hashes/utils.js";
+import { ulid } from "ulid";
 
 // src/core/tps.ts
 import { TPS } from "@nextera.one/tps-standard";
@@ -141,12 +141,54 @@ function normalizeTpsUri(input) {
   }
 }
 
+// src/core/tpsuid.ts
+init_crypto();
+import { TPSUID7RB } from "@nextera.one/tps-standard";
+import { bytesToHex as bytesToHex2 } from "@noble/hashes/utils.js";
+function generateTpsUid(tpsString) {
+  const randomContext = bytesToHex2(randomBytes(8));
+  const tpsWithContext = `${tpsString}?ctx=${randomContext}`;
+  try {
+    const uid = TPSUID7RB.encodeBinaryB64(tpsWithContext, { compress: true });
+    return uid;
+  } catch (err) {
+    const fallbackUid = TPSUID7RB.encodeBinaryB64(
+      `${tpsString}#${randomContext}`,
+      { compress: true }
+    );
+    return fallbackUid;
+  }
+}
+function decodeTpsUid(uid) {
+  try {
+    const decoded = TPSUID7RB.decodeBinaryB64(uid);
+    if (!decoded.tps) {
+      throw new Error("Failed to decode TPS-UID");
+    }
+    const ctxMatch = decoded.tps.match(/\?ctx=([a-f0-9]+)/);
+    const context = ctxMatch ? ctxMatch[1] : void 0;
+    const tps = decoded.tps.replace(/\?ctx=[a-f0-9]+$/, "");
+    return { tps, context };
+  } catch (err) {
+    throw new Error(
+      `Failed to decode TPS-UID: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+}
+
 // src/core/chain.ts
 function createEntry(input) {
+  if (!input.actor || input.actor.trim().length === 0) {
+    throw new Error(
+      'actor is required (e.g., "user:alice", "system:cron", "device:sensor-1")'
+    );
+  }
+  const normalizedTps = normalizeTpsUri(input.tps);
   return {
     spec: "openlogs.v2",
-    id: input.id ?? ulid(),
-    tps: normalizeTpsUri(input.tps),
+    id: input.id ?? generateTpsUid(normalizedTps),
+    actor: input.actor.trim(),
+    tps: normalizedTps,
     event: input.event,
     ...input.data && { data: input.data },
     ...input.indexes && { indexes: input.indexes }
@@ -165,8 +207,8 @@ async function signV2Record(record, keys) {
   const sigBytes = await ed25519Sign(utf8ToBytes(record.hash), keys.privateKey);
   const sig = {
     alg: "ed25519",
-    publicKeyHex: bytesToHex2(keys.publicKey),
-    sigHex: bytesToHex2(sigBytes),
+    publicKeyHex: bytesToHex3(keys.publicKey),
+    sigHex: bytesToHex3(sigBytes),
     kid: keys.kid
   };
   return { ...record, sig };
@@ -221,8 +263,8 @@ async function signRecord(record, keys) {
   const sigBytes = await ed25519Sign(utf8ToBytes(record.hash), keys.privateKey);
   const sig = {
     alg: "ed25519",
-    publicKeyHex: bytesToHex2(keys.publicKey),
-    sigHex: bytesToHex2(sigBytes),
+    publicKeyHex: bytesToHex3(keys.publicKey),
+    sigHex: bytesToHex3(sigBytes),
     kid: keys.kid
   };
   return { ...record, sig };
@@ -261,9 +303,11 @@ export {
   createPayload,
   createRecord,
   createV2Record,
+  decodeTpsUid,
   ed25519Sign,
   ed25519Verify,
   generateEd25519Keypair,
+  generateTpsUid,
   hexToBytes,
   normalizeTpsUri,
   randomBytes,
