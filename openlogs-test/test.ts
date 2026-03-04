@@ -255,6 +255,93 @@ async function run() {
     assert.equal(entry.spec, "openlogs.v2");
   });
 
+  // ─── v0.6.0 Protocol Formats ──────────────────────────────────────────
+  section("v0.6.0 Protocol Formats");
+
+  await test("supports GPS + place codes", () => {
+    const entry = createEntry({
+      actor: "user:alice",
+      tps: "tps://L:31.95,35.91;P:cc=JO,ci=AMM@T:greg.m3.c1.y26.m3.d4.h12.m0.s0.m0",
+      event: "location.checkin",
+    });
+    assert.equal(entry.spec, "openlogs.v2");
+    assert.ok(entry.tps.includes("31.95"), "should preserve latitude");
+  });
+
+  await test("supports context fragment (#C:)", () => {
+    const entry = createEntry({
+      actor: "system:api",
+      tps: "tps://L:31.95,35.91@T:greg.m3.c1.y26.m3.d4.h12.m0.s0.m0#C:org=abc;event=xyz",
+      event: "audit.access",
+    });
+    assert.equal(entry.spec, "openlogs.v2");
+    assert.ok(entry.tps, "should accept TPS with context fragment");
+  });
+
+  await test("supports data-center IPv4 format", () => {
+    const entry = createEntry({
+      actor: "node:lb-01",
+      tps: "tps://net:ip4:203.0.113.10@T:greg.m3.c1.y26.m3.d4.h12.m0.s0.m0",
+      event: "health.check",
+    });
+    assert.equal(entry.spec, "openlogs.v2");
+  });
+
+  await test("supports data-center IPv6 format", () => {
+    const entry = createEntry({
+      actor: "node:api-2",
+      tps: "tps://net:ip6:2001:db8::1@T:greg.m3.c1.y26.m3.d4.h12.m0.s0.m0",
+      event: "health.check",
+    });
+    assert.equal(entry.spec, "openlogs.v2");
+  });
+
+  await test("supports logical node format", () => {
+    const entry = createEntry({
+      actor: "system:monitor",
+      tps: "tps://node:api-1@T:greg.m3.c1.y26.m3.d4.h12.m0.s0.m0#C:cluster=us-east;role=primary",
+      event: "node.status",
+    });
+    assert.equal(entry.spec, "openlogs.v2");
+  });
+
+  await test("supports building/floor/door layers with actor", () => {
+    const entry = createEntry({
+      actor: "device:cam-01",
+      tps: "tps://bldg:vault;floor:1;door:1/A:node:cam-01@T:greg.m3.c1.y26.m3.d4.h12.m0.s0.m0#C:event=entry",
+      event: "access.door",
+    });
+    assert.equal(entry.spec, "openlogs.v2");
+  });
+
+  await test("builds chain with mixed v0.6.0 formats", async () => {
+    const batch = createV2Chain([
+      {
+        actor: "system:audit",
+        tps: "tps://L:31.95,35.91;P:cc=JO,ci=AMM@T:greg.m3.c1.y26.m3.d4.h12.m0.s0.m0",
+        event: "step.gps",
+      },
+      {
+        actor: "node:api-1",
+        tps: "tps://net:ip4:10.0.0.5;node:lb-01@T:greg.m3.c1.y26.m3.d4.h12.m0.s1.m0",
+        event: "step.datacenter",
+      },
+      {
+        actor: "device:cam-01",
+        tps: "tps://bldg:vault;floor:1;door:1@T:greg.m3.c1.y26.m3.d4.h12.m0.s2.m0#C:event=entry",
+        event: "step.building",
+      },
+    ]);
+
+    assert.equal(batch.length, 3);
+    assert.equal(batch[0].prev_hash, null);
+    assert.equal(batch[1].prev_hash, batch[0].hash);
+    assert.equal(batch[2].prev_hash, batch[1].hash);
+
+    const res = await verifyV2Chain(batch);
+    assert.ok(res.ok, `Mixed-format chain should be valid: ${res.error}`);
+  });
+
   // ─── Summary ────────────────────────────────────────────────────────────
   console.log("\n═══════════════════════════════════════════");
   console.log(`  Results: ${passed} passed, ${failed} failed`);

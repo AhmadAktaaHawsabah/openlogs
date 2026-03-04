@@ -11,7 +11,7 @@ const fsutil_1 = require("./fsutil");
 exports.logCommand = new commander_1.Command("log")
     .description("Append a new OpenLogs v2 record to a JSONL file")
     .requiredOption("-a, --actor <actor>", "Actor identifier (e.g., user:alice, system:cron, device:sensor-1)")
-    .requiredOption("-t, --tps <tps>", "TPS Reality String (e.g., tps://L:bldg=hq@T:greg.y26.M01)")
+    .requiredOption("-t, --tps <tps>", "TPS Reality String (e.g., tps://L:31.95,35.91;P:cc=JO@T:greg.m3.c1.y26.m3.d4.h12.m0.s0.m0)")
     .requiredOption("-e, --event <event>", "Event type (e.g., door.unlock, step.start)")
     .option("-d, --data <json>", "JSON payload string", "{}")
     .option("-x, --indexes <json>", 'JSON indexes for querying (e.g., {"s2":"88d9b4"})')

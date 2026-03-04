@@ -23,7 +23,7 @@ export const logCommand = new Command("log")
   )
   .requiredOption(
     "-t, --tps <tps>",
-    "TPS Reality String (e.g., tps://L:bldg=hq@T:greg.y26.M01)",
+    "TPS Reality String (e.g., tps://L:31.95,35.91;P:cc=JO@T:greg.m3.c1.y26.m3.d4.h12.m0.s0.m0)",
   )
   .requiredOption(
     "-e, --event <event>",

@@ -2,7 +2,6 @@
   "name": "@nextera.one/openlogs-test",
   "version": "2.0.0",
   "description": "Comprehensive test suite and examples for OpenLogs SDK v2",
-  "type": "module",
   "scripts": {
     "test": "tsx test.ts",
     "build": "tsc"

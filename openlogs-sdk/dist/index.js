@@ -178,15 +178,15 @@ var import_tps_standard2 = require("@nextera.one/tps-standard");
 var import_utils2 = require("@noble/hashes/utils.js");
 function generateTpsUid(tpsString) {
   const randomContext = (0, import_utils2.bytesToHex)(randomBytes(8));
-  const tpsWithContext = `${tpsString}?ctx=${randomContext}`;
+  const suffix = tpsString.includes("#C:") ? `;ctx=${randomContext}` : `#C:ctx=${randomContext}`;
+  const tpsWithContext = `${tpsString}${suffix}`;
   try {
     const uid = import_tps_standard2.TPSUID7RB.encodeBinaryB64(tpsWithContext, { compress: true });
     return uid;
   } catch (err) {
-    const fallbackUid = import_tps_standard2.TPSUID7RB.encodeBinaryB64(
-      `${tpsString}#${randomContext}`,
-      { compress: true }
-    );
+    const fallbackUid = import_tps_standard2.TPSUID7RB.encodeBinaryB64(tpsWithContext, {
+      compress: false
+    });
     return fallbackUid;
   }
 }
@@ -196,9 +196,15 @@ function decodeTpsUid(uid) {
     if (!decoded.tps) {
       throw new Error("Failed to decode TPS-UID");
     }
-    const ctxMatch = decoded.tps.match(/\?ctx=([a-f0-9]+)/);
-    const context = ctxMatch ? ctxMatch[1] : void 0;
-    const tps = decoded.tps.replace(/\?ctx=[a-f0-9]+$/, "");
+    let context;
+    const ctxMatch = decoded.tps.match(/(?:#C:|;)ctx=([a-f0-9]+)/) || decoded.tps.match(/\?ctx=([a-f0-9]+)/);
+    if (ctxMatch) {
+      context = ctxMatch[1];
+    }
+    let tps = decoded.tps;
+    tps = tps.replace(/;ctx=[a-f0-9]+$/, "");
+    tps = tps.replace(/#C:ctx=[a-f0-9]+$/, "");
+    tps = tps.replace(/\?ctx=[a-f0-9]+$/, "");
     return { tps, context };
   } catch (err) {
     throw new Error(

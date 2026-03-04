@@ -5,7 +5,8 @@
   "workspaces": [
     "openlogs-sdk",
     "openlogs-cli",
-    "openlogs-test"
+    "openlogs-test",
+    "openlogs-nestjs"
   ],
   "scripts": {
     "build": "npm run build --workspaces",
