@@ -3,7 +3,6 @@
 **/package-lock.json
 
 # Build outputs
-/**/dist
 /**/build
 /**/out
 
