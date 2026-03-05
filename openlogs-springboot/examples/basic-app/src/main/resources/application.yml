@@ -1,0 +1,12 @@
+server:
+  port: 8080
+
+openlogs:
+  enabled: true
+  node-name: demo-api
+  context:
+    env: demo
+  location:
+    latitude: 25.2048
+    longitude: 55.2708
+    place-country-code: AE

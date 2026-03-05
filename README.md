@@ -6,7 +6,15 @@
 openlogs/
 ├── openlogs-sdk     →  Core TypeScript SDK (hash chains, Ed25519 signing, TPS-UID)
 ├── openlogs-cli     →  CLI tool (init, log, verify, inspect, export)
-└── openlogs-test    →  Assertion-based integration test suite
+├── openlogs-test    →  Assertion-based integration test suite
+├── openlogs-sdk-java → Core Java SDK (hash chains, canonical hashing)
+├── openlogs-springboot → Spring Boot integration (auto interceptor, request logging)
+├── openlogs-sdk-python → Core Python SDK (hash chains, Ed25519 signing)
+├── openlogs-fastapi → FastAPI integration (middleware request logging)
+├── openlogs-sdk-go  → Core Go SDK (hash chains, Ed25519 signing)
+├── openlogs-sdk-csharp → Core C# SDK (hash chains, Ed25519 signing)
+├── openlogs-gin → Gin integration (middleware request logging)
+└── openlogs-aspnetcore → ASP.NET Core integration (middleware request logging)
 ```
 
 ## Quick Start
@@ -64,11 +72,19 @@ console.log(await verifyV2Chain(signed)); // { ok: true }
 
 ## Packages
 
-| Package                                       | Description                                                     | Version |
-| --------------------------------------------- | --------------------------------------------------------------- | ------- |
-| [@nextera.one/openlogs-sdk](./openlogs-sdk)   | Core SDK — entries, hash chains, signing, TPS-UID, key rotation | 2.1.0   |
-| [@nextera.one/openlogs-cli](./openlogs-cli)   | CLI — `init`, `log`, `verify`, `inspect`, `export`              | 2.0.1   |
-| [@nextera.one/openlogs-test](./openlogs-test) | Integration test suite (14 assertions)                          | 2.0.0   |
+| Package                                       | Description                                                     | Version        |
+| --------------------------------------------- | --------------------------------------------------------------- | -------------- |
+| [@nextera.one/openlogs-sdk](./openlogs-sdk)   | Core SDK — entries, hash chains, signing, TPS-UID, key rotation | 2.1.0          |
+| [@nextera.one/openlogs-cli](./openlogs-cli)   | CLI — `init`, `log`, `verify`, `inspect`, `export`              | 2.0.1          |
+| [@nextera.one/openlogs-test](./openlogs-test) | Integration test suite (14 assertions)                          | 2.0.0          |
+| [openlogs-sdk-java](./openlogs-sdk-java)      | Java SDK — entries, canonical hashing, hash-chain verification  | 1.0.0-SNAPSHOT |
+| [openlogs-springboot](./openlogs-springboot)  | Spring Boot starter — auto interceptor + OpenLogs chain service | 1.0.0-SNAPSHOT |
+| [openlogs-sdk-python](./openlogs-sdk-python)  | Python SDK — entries, canonical hashing, Ed25519 signatures     | 1.0.0          |
+| [openlogs-fastapi](./openlogs-fastapi)        | FastAPI integration — middleware + OpenLogs chain service       | 1.0.0          |
+| [openlogs-sdk-go](./openlogs-sdk-go)          | Go SDK — entries, hash chaining, Ed25519 signatures             | 1.0.0          |
+| [openlogs-sdk-csharp](./openlogs-sdk-csharp)  | C# SDK — entries, hash chaining, Ed25519 signatures             | 1.0.0          |
+| [openlogs-gin](./openlogs-gin)                | Gin integration — middleware + OpenLogs chain service           | 1.0.0          |
+| [openlogs-aspnetcore](./openlogs-aspnetcore)  | ASP.NET Core integration — middleware + OpenLogs chain service  | 1.0.0          |
 
 ## Key Features
 
