@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling>=1.26.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openlogs-fastapi"
+version = "1.0.0"
+description = "FastAPI integration for OpenLogs v2"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{ name = "NextEra.One" }]
+dependencies = [
+  "fastapi>=0.116.0",
+  "openlogs-sdk-python>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28.0",
+  "pytest>=8.3.0",
+  "uvicorn>=0.35.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openlogs_fastapi"]
