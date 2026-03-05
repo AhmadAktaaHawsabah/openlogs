@@ -34,7 +34,7 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "prepare": "npm run build"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "openlogs",
